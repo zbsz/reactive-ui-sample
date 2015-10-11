@@ -1,0 +1,6 @@
+.idea/*
+target/*
+gen/*
+project/target/*
+project/project/*
+proguard-sbt.txt
