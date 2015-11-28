@@ -1,0 +1,4 @@
+-ignorewarnings
+-optimizationpasses 5
+
+-keep class scala.collection.SeqLike { public java.lang.String toString(); }

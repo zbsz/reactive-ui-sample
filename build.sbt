@@ -25,7 +25,17 @@ publishArtifact in (Compile, packageDoc) := false
 publishArtifact in Test := false
 publishArtifact in Compile := false
 
-proguardOptions in Android ++= Seq("-ignorewarnings", "-dontoptimize", "-keepclasseswithmembers class com.geteit.** { *; }")
+proguardOptions in Android ++= io.Source.fromFile("proguard.txt").getLines.toSeq
+
+// don't include jni libs in apk file
+collectJni in Android := { List() }
+
+// don't include assets - we don't use them
+collectResources in Android := {
+  val (assets, res) = (collectResources in Android).value
+  (assets ** "*").get.foreach(_.delete())
+  (assets, res)
+}
 
 libraryProject in Android := false
 

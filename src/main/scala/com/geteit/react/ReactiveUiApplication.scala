@@ -6,7 +6,7 @@ import com.geteit.react.service.PlaybackService
 
 class ReactiveUiApplication extends GtApplication {
 
-  override lazy val module = AppModule :: GtAppModule() :: GtModule
+  override lazy val module = AppModule :: GtModule
 
   val AppModule = Module { implicit bind =>
     bind [PlaybackService] to new PlaybackService(getApplicationContext)

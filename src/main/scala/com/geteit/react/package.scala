@@ -12,7 +12,7 @@ package object react {
       LayoutInflater.from(context).inflate(resource, root, addToRoot).asInstanceOf[A]
     } catch {
       case e: Throwable =>
-        Log.error("inflate failed", e)("de.abod.ui")
+        Log.error("inflate failed", e)("com.geteit.react")
         throw e
     }
 
