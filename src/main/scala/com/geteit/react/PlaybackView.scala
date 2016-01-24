@@ -11,6 +11,8 @@ import com.geteit.concurrent.Threading
 import com.geteit.events.Signal
 import com.geteit.view.{DragGesture, TouchReactor}
 
+import scala.concurrent.duration.Duration
+
 class PlaybackView(context: Context, attrs: AttributeSet, style: Int) extends RelativeLayout(context, attrs, style) with ViewHelper {
   def this(context: Context, attrs: AttributeSet) = this(context, attrs, 0)
 
@@ -120,7 +122,7 @@ class PlaybackView(context: Context, attrs: AttributeSet, style: Int) extends Re
   val progress = for {
     song     <- currentSong
     position <- positionSeconds
-  } yield position.seconds * 10000 / song.duration.seconds
+  } yield if (song.duration.seconds <= 0) 0 else position.seconds * 10000 / song.duration.seconds
 
   progress.on(Threading.ui) { pbProgress.setProgress }
 }

@@ -4,21 +4,20 @@
           android:versionCode="1"
           android:versionName="0.0.1">
 
-    <uses-sdk android:minSdkVersion="22" android:targetSdkVersion="22"/>
+    <uses-sdk android:minSdkVersion="21" android:targetSdkVersion="23"/>
 
     <uses-feature android:name="android.hardware.touchscreen" android:required="true"/>
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
 
     <application android:label="@string/app_name" android:name=".ReactiveUiApplication" android:theme="@style/AppTheme">
 
+        <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
         <activity android:name=".MainActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
-
-        <!--<service android:name=".PlayerService" android:label="@string/player_service_label" android:enabled="true" />-->
 
     </application>
 </manifest>

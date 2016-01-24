@@ -7,8 +7,10 @@ import android.media.MediaPlayer
 import android.media.MediaPlayer.OnCompletionListener
 import android.net.Uri
 import com.geteit.concurrent.{CancellableFuture, LimitedExecutionContext}
-import com.geteit.events.Signal
+import com.geteit.events.{EventContext, Signal}
+import com.geteit.inject.{Injector, Injectable}
 import com.geteit.react.service.PlaybackState.{Paused, Playing, Stopped}
+import com.geteit.util.Log._
 
 import scala.concurrent.Future
 import scala.concurrent.duration.FiniteDuration
@@ -36,10 +38,6 @@ case class Seconds(override val seconds: Int) extends Duration {
   override def toString: String = f"${seconds / 60}%02d:${seconds % 60}%02d"
 }
 
-case class Chapter(id: ChapterId, bookId: BookId, index: Int, duration: Duration)
-
-case class AudioBook(chapters: Array[Chapter])
-
 case class Song(uri: Uri, album: String, title: String, duration: Duration)
 
 case class Album(title: String, songs: IndexedSeq[Song]) {
@@ -63,16 +61,18 @@ object PlaybackState {
 }
 
 
-class PlaybackService(context: Context) {
+class PlaybackService(context: Context)(implicit ec: EventContext, inj: Injector) extends Injectable {
   private implicit val dispatcher = new LimitedExecutionContext()
   private val player = new MediaPlayer()
-  private val storage = new PlaybackStorage(context)
+  private val storage = inject[PlaybackStorage]
 
   // Currently played song uri
   val currentSong = Signal[Uri]()
   val playbackState = Signal[PlaybackState](Stopped)
 
-  storage.firstSong foreach(s => currentSong ! s.uri)
+  storage.firstSong { s =>
+    if (currentSong.currentValue.isEmpty) currentSong ! s.uri
+  }
 
   player.setOnCompletionListener(new OnCompletionListener {
     override def onCompletion(mp: MediaPlayer): Unit = playbackState ! Stopped

@@ -8,6 +8,7 @@ import android.provider.MediaStore
 import android.provider.MediaStore.MediaColumns
 import com.geteit.events.{EventStream, Signal}
 import com.geteit.util.Log._
+
 import scala.collection.JavaConverters._
 import scala.concurrent.Future
 
@@ -22,8 +23,37 @@ class PlaybackStorage(context: Context) {
   private val songChanged = EventStream[Song]()
   private val albumChanged = EventStream[Album]()
   private val positionChanged = EventStream[(Uri, Millis)]()
-  
-  private val init = Future {
+
+  reload()
+
+  def firstSong =
+    Signal.wrap(albumChanged).orElse(Signal.const(null)) flatMap { _ =>
+      verbose(s"first flatMap, albums: $albums")
+      if (albums.isEmpty) Signal.empty[Song]
+      else albums.values().asScala.maxBy(_.songs.size).songs.headOption.fold(Signal.empty[Song])(Signal.const)
+    }
+
+  def song(uri: Uri) =
+    Signal.wrap(songChanged.filter(_.uri == uri)).orElse {
+      Option(songs.get(uri)).fold(Signal.empty[Song])(Signal.const)
+    }
+
+  def album(title: String) =
+    Signal.wrap(albumChanged.filter(_.title == title)).orElse {
+      Option(albums.get(title)).fold(Signal.empty[Album])(Signal.const)
+    }
+
+  def position(uri: Uri) =
+    Signal.wrap(positionChanged.filter(_._1 == uri)).map(_._2).orElse {
+      Signal.const(Option(positions.get(uri)).getOrElse(Millis(0)))
+    }
+
+  def setPosition(uri: Uri, pos: Millis) = {
+    positions.put(uri, pos)
+    positionChanged ! (uri, pos)
+  }
+
+  def reload() = Future {
     val media = listMedia()
     verbose(s"found media: $media")
     media foreach { s =>
@@ -37,31 +67,6 @@ class PlaybackStorage(context: Context) {
         albumChanged ! a
         a
     }
-    media
-  }
-
-  def firstSong = init.map { _ =>
-    albums.values().asScala.maxBy(_.songs.size).songs.head
-  }
-
-  def song(uri: Uri) = 
-    Signal.wrap(songChanged.filter(_.uri == uri)).orElse {
-      Option(songs.get(uri)).fold(Signal.empty[Song])(Signal.const)
-    }
-  
-  def album(title: String) = 
-    Signal.wrap(albumChanged.filter(_.title == title)).orElse {
-      Option(albums.get(title)).fold(Signal.empty[Album])(Signal.const)
-    }
-  
-  def position(uri: Uri) =
-    Signal.wrap(positionChanged.filter(_._1 == uri)).map(_._2).orElse {
-      Signal.const(Option(positions.get(uri)).getOrElse(Millis(0)))
-    }
-
-  def setPosition(uri: Uri, pos: Millis) = {
-    positions.put(uri, pos)
-    positionChanged ! (uri, pos)
   }
 
   private def listMedia() = {
@@ -69,7 +74,7 @@ class PlaybackStorage(context: Context) {
     import AudioColumns._
     import MediaColumns._
 
-    val cursor = context.getContentResolver.query(Media.EXTERNAL_CONTENT_URI, Array(DATA, ALBUM, TITLE, DURATION), IS_MUSIC + "= 1", null, null)
+    val cursor = context.getContentResolver.query(Media.EXTERNAL_CONTENT_URI, Array(DATA, ALBUM, TITLE, DURATION), null, null, null)
     try {
       Iterator.continually {
         if (cursor.moveToNext()) Some(Song(Uri.parse(cursor.getString(0)), cursor.getString(1), cursor.getString(2), Millis(cursor.getLong(3))))
